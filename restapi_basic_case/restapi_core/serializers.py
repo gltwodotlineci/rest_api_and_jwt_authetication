@@ -32,4 +32,17 @@ class IssueUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Issue
-        fields = []
+        fields = ['contributor',
+                  'project',
+                  'title',
+                  'priority',
+                  'type_problem',
+                  'status_progress'
+                  ]
+
+
+class CommentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Comment
+        fields = ['issue', 'description', 'issue_url']
