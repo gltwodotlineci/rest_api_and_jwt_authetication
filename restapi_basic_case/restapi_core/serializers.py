@@ -1,27 +1,40 @@
-from restapi_core.models import CustomUser, Project, Contributor,\
+from restapi_core.models import CustomUser, Project, Contributor, \
     Issue, Comment
 from rest_framework import serializers
 
 
 # Serializing Customuser
 class CustomUserSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for the CustomUser model.
+    """
     class Meta:
         model = CustomUser
-        fields = ['username','email', 'age']
+        fields = ['username', 'email', 'age', 'password']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        instance = self.Meta.model(**validated_data)
+        if password is not None:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
-# Serializing Customuser
 class ProjectSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for the Project model.
+    """
     class Meta:
         model = Project
-        fields = ['name', 'description', 'user']
+        fields = ['name', 'description', 'time_created', 'type']
 
 
-# Serializing Customuser
 class ContributorSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for the Contributor model.
+    """
     class Meta:
         model = Contributor
         fields = ['user', 'project']

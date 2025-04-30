@@ -1,12 +1,19 @@
-from django.shortcuts import render
-from rest_framework import viewsets
+from datetime import datetime, timezone, timedelta
+import jwt
+# from django.shortcuts import render
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import CustomUser, Project, Contributor, Issue, Comment
-from .serializers import CustomUserSerializer, ProjectSerializer,\
+from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
+from rest_framework.exceptions import AuthenticationFailed
 
-# refacto the creation of the list for the viewset:
-def refacto_list_objects(model, serializer_model)-> dict:
+
+def refacto_list_objects(model, serializer_model) -> dict:
+    """
+    refacto the creation of the list for the viewset:
+    """
     queryset = model.objects.all()
     obj_serialized = serializer_model(queryset, many=True)
     objects = obj_serialized.data
@@ -16,115 +23,103 @@ def refacto_list_objects(model, serializer_model)-> dict:
 class CustomUserViewSet(viewsets.ViewSet):
 
     def list(self, request):
-        users = refacto_list_objects(CustomUser, CustomUserSerializer)
+        # users = refacto_list_objects(CustomUser, CustomUserSerializer)
+        # return Response(users)
+        queryset = CustomUser.objects.all()
+        obj_serialized = CustomUserSerializer(queryset, many=True)
+        users = obj_serialized.data
         return Response(users)
 
-
-    def retrive(self, request, pk=None):
+    def retrieve(self, request, pk=None):
         pass
-
 
     def create(self, request):
-        pass
-
+        serializer = CustomUserSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
 
     def update(self, request, pk=None):
         pass
-
 
     def destroy(self, request, pk=None):
         pass
 
 
-class ProjectViewSet(viewsets.ViewSet):
-
-    def list(self, request):
-        projects = refacto_list_objects(Project, ProjectSerializer)
-        return Response(projects)
-
-
-    def retrive(self, request, pk=None):
-        pass
-
-
+class LoginViewSet(viewsets.ViewSet):
+    """
+    Viewset for user login.
+    Verify the authentication of the user.
+    """
     def create(self, request):
-        pass
+        """
+        Verify the authentication of the user.
+        """
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = CustomUser.objects.filter(username=username).first()
+
+        if user is None:
+            raise AuthenticationFailed('Invalid credentials')
+        if not user.check_password(password):
+            raise AuthenticationFailed('Invalid credentials')
+
+        print(user.pk)
+        payload = {
+            "id": str(user.pk),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=50),
+            "iat": datetime.now(timezone.utc)
+        }
+        token = jwt.encode(payload, 'secret', algorithm='HS256')
+
+        return Response({'jwt_token': token}, status=status.HTTP_200_OK)
 
 
-    def update(self, request, pk=None):
-        pass
+
+class LogoutViewSet(viewsets.ViewSet):
+    """
+    Viewset for user logout.
+    """
+    def create(self, request):
+        """
+        Logout the user.
+        """
+        resp = Response()
+        resp.delete_cookie('jwt')
+        resp.data = {'message': 'signed out'}
+        return resp
 
 
-    def destroy(self, request, pk=None):
-        pass
+class ProjectViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for the Project model.
+    check authentication for the user.
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
+    lookup_field = 'uuid'
+    http_method_names = ['get', 'delete', 'head', 'options']
 
 
 class ContributorViewSet(viewsets.ViewSet):
 
-    def list(self, request):
-        contributors = refacto_list_objects(Contributor,
-                                            ContributorSerializer)
-
-        return Response(contributors)
-
-
-    def retrive(self, request, pk=None):
-        pass
+    queryset = Contributor.objects.all()
+    serializer_class = ContributorSerializer
+    lookup_field = 'uuid'
+    http_method_names = ['get', 'delete', 'head', 'options']
 
 
-    def create(self, request):
-        pass
+class IssueViewSet(viewsets.ModelViewSet):
+    queryset = Issue.objects.all()
+    serializer_class = IssueUserSerializer
+    lookup_field = 'uuid'
+    http_method_names = ['get', 'delete', 'head', 'options']
 
 
-    def update(self, request, pk=None):
-        pass
-
-
-    def destroy(self, request, pk=None):
-        pass
-
-
-class IssueViewSet(viewsets.ViewSet):
-
-    def list(self, request):
-        issues = refacto_list_objects(Issue, IssueUserSerializer)
-        return Response(issues)
-
-
-    def retrive(self, request, pk=None):
-        pass
-
-
-    def create(self, request):
-        pass
-
-
-    def update(self, request, pk=None):
-        pass
-
-
-    def destroy(self, request, pk=None):
-        pass
-
-
-class CommentViewSet(viewsets.ViewSet):
-
-    def list(self, request):
-        comments = refacto_list_objects(Comment, CommentSerializer)
-        return Response(comments)
-
-
-    def retrive(self, request, pk=None):
-        pass
-
-
-    def create(self, request):
-        pass
-
-
-    def update(self, request, pk=None):
-        pass
-
-
-    def destroy(self, request, pk=None):
-        pass
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    lookup_field = 'uuid'
+    http_method_names = ['get', 'delete', 'head', 'options']
