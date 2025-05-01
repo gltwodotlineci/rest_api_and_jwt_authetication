@@ -8,6 +8,7 @@ from .models import CustomUser, Project, Contributor, Issue, Comment
 from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
 from rest_framework.exceptions import AuthenticationFailed
+from .authentication import CustomJWTAuthentication
 
 
 def refacto_list_objects(model, serializer_model) -> dict:
@@ -65,7 +66,6 @@ class LoginViewSet(viewsets.ViewSet):
         if not user.check_password(password):
             raise AuthenticationFailed('Invalid credentials')
 
-        print(user.pk)
         payload = {
             "id": str(user.pk),
             "exp": datetime.now(timezone.utc) + timedelta(minutes=50),
@@ -96,11 +96,29 @@ class ProjectViewSet(viewsets.ModelViewSet):
     Viewset for the Project model.
     check authentication for the user.
     """
+    authentication_classes = [CustomJWTAuthentication]
     permission_classes = [IsAuthenticated]
     queryset = Project.objects.all()
+
     serializer_class = ProjectSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        if not self.request.user.is_staff:
+            # Filter the queryset to only include projects that the user is a contributor of
+            return self.queryset.filter(project_contributors__user=self.request.user)
+        return super().get_queryset()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        proj = serializer.save()
+
+        # Add the user as a contributor to the project
+        Contributor.objects.create(user=request.user, project=proj, role="A")
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 class ContributorViewSet(viewsets.ViewSet):

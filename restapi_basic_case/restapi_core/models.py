@@ -58,6 +58,15 @@ class Contributor(models.Model):
                                 related_name='project_contributors')
     date_joined = models.DateTimeField(auto_now_add=True)
 
+    AUTHOR, CONTRIBUTOR = 'A', 'C'
+    ROLE = [
+        (AUTHOR, 'Author'),
+        (CONTRIBUTOR, 'Contributor')
+    ]
+    role = models.CharField(max_length=1,
+                            choices=ROLE,
+                            default=CONTRIBUTOR)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['user', 'project'],
