@@ -9,6 +9,7 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
+from django.db.models import Q
 
 
 def refacto_list_objects(model, serializer_model) -> dict:
@@ -125,6 +126,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
     """
     Viewset for the Contributor model.
     check authentication for the user.
+    add new contributor to the project.
     """
     authentication_classes = [CustomJWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -132,13 +134,35 @@ class ContributorViewSet(viewsets.ModelViewSet):
     queryset = Contributor.objects.all()
     serializer_class = ContributorSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     def get_queryset(self):
         if self.request.user.is_staff:
             return super().get_queryset()
         # Filter the queryset to only include contributors that
         return self.queryset.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=True):
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if not self.request.user.is_staff:
+            data = serializer.validated_data
+
+            proj = data.get('project')
+            usr_contrib = Contributor.objects.filter(
+                Q(user__in=proj.contributors.all()) & Q(role='A'))
+            if request.user != usr_contrib.last().user:
+                msg0 = "You're not authorized to add"
+                msg1 = " contributors to this project."
+                message = f"{msg0} {msg1}"
+                return Response({'error': message},
+                                status=status.HTTP_403_FORBIDDEN)
+
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class IssueViewSet(viewsets.ModelViewSet):
