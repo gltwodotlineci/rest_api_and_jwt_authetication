@@ -76,7 +76,6 @@ class LoginViewSet(viewsets.ViewSet):
         return Response({'jwt_token': token}, status=status.HTTP_200_OK)
 
 
-
 class LogoutViewSet(viewsets.ViewSet):
     """
     Viewset for user logout.
@@ -106,8 +105,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if not self.request.user.is_staff:
-            # Filter the queryset to only include projects that the user is a contributor of
-            return self.queryset.filter(project_contributors__user=self.request.user)
+            # Filter the queryset to only include projects that
+            # the user is a contributor of
+            return self.queryset.filter(
+                project_contributors__user=self.request.user)
         return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
@@ -120,13 +121,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-
-class ContributorViewSet(viewsets.ViewSet):
+class ContributorViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for the Contributor model.
+    check authentication for the user.
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     queryset = Contributor.objects.all()
     serializer_class = ContributorSerializer
     lookup_field = 'uuid'
     http_method_names = ['get', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return super().get_queryset()
+        # Filter the queryset to only include contributors that
+        return self.queryset.filter(user=self.request.user)
 
 
 class IssueViewSet(viewsets.ModelViewSet):
