@@ -35,6 +35,14 @@ class ContributorSerializer(serializers.ModelSerializer):
     """
     Serializer for the Contributor model.
     """
+    def validate_role(self, value):
+        """
+        Validate the role field.
+        """
+        if value != 'C':
+            raise serializers.ValidationError("Invalid role")
+        return value
+
     class Meta:
         model = Contributor
         fields = ['pk', 'user', 'project', 'role', 'date_joined']
