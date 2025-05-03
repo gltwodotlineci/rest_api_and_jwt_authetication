@@ -82,10 +82,10 @@ class Issue(models.Model):
     # No contributor as FK
     contributor = models.ForeignKey(Contributor,
                                     on_delete=models.CASCADE,
-                                    related_name='task')
+                                    related_name='issue_contributor')
     project = models.ForeignKey(Project,
                                 on_delete=models.CASCADE,
-                                related_name='task')
+                                related_name='issue_project')
     title = models.CharField(max_length=100, unique=True)
 
     LOW, MEDIUM, HIGH = 'L', 'M', 'H'

@@ -37,7 +37,7 @@ class ContributorSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Contributor
-        fields = ['user', 'project', 'role', 'date_joined']
+        fields = ['pk', 'user', 'project', 'role', 'date_joined']
 
 
 # Serializing Customuser

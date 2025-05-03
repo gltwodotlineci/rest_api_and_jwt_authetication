@@ -169,7 +169,13 @@ class IssueViewSet(viewsets.ModelViewSet):
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return super().get_queryset()
+        # Filter the queryset to only include issues that
+        # the user is a contributor of
 
 
 class CommentViewSet(viewsets.ModelViewSet):
