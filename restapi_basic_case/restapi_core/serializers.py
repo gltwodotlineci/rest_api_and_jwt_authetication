@@ -54,6 +54,7 @@ class IssueUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = ['contributor',
+                  'pk',
                   'project',
                   'title',
                   'priority',

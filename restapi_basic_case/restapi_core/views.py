@@ -175,7 +175,8 @@ class IssueViewSet(viewsets.ModelViewSet):
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete',
+                         'head', 'options', 'update']
 
     def get_queryset(self):
 
@@ -183,9 +184,9 @@ class IssueViewSet(viewsets.ModelViewSet):
             user = self.request.user
             # Filter the queryset to only include issues that
             # the user is a contributor or author
-            return self.queryset.filter(
-                Q(contributor__user=user) |
-                Q(project__project_contributors__user=user))
+            issues = self.queryset.filter(
+                project__project_contributors__user=user)
+            return issues
         # If the user is staff, return all issues
         return super().get_queryset()
 
@@ -194,10 +195,12 @@ class IssueViewSet(viewsets.ModelViewSet):
         Create a new issue.
         """
         serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=True):
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
         if not self.request.user.is_staff:
             data = serializer.validated_data
-
             proj = data.get('project')
             usr_contrib = Contributor.objects.filter(
                 Q(user__in=proj.contributors.all()) & Q(role='A'))
@@ -228,6 +231,24 @@ class IssueViewSet(viewsets.ModelViewSet):
                                 status=status.HTTP_403_FORBIDDEN)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        """
+        destroy an existing issue.
+        """
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance, data=request.data,
+                                         partial=True)
+        if not self.request.user.is_staff:
+
+            if instance.contributor.user != self.request.user:
+                msg = "You're not authorized to delete this issue."
+                return Response({'error': msg},
+                                status=status.HTTP_403_FORBIDDEN)
+        serializer.is_valid(raise_exception=True)
+        self.perform_destroy(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
