@@ -1,4 +1,4 @@
-from .models import CustomUser, Project, Contributor
+from .models import CustomUser, Project, Contributor, Issue
 from django.contrib import admin
 
 
@@ -31,13 +31,27 @@ class ContributorAdmin(admin.ModelAdmin):
     """
     Admin interface for the Contributor model.
     """
-    list_display = ('user', 'project', 'date_joined', 'role')
+    list_display = ('user', 'pk', 'project', 'date_joined', 'role')
     search_fields = ['user__username', 'project__name']
     list_filter = ('role',)
     ordering = ['-date_joined']
     list_per_page = 10
 
 
+class IssueAdmin(admin.ModelAdmin):
+    """
+    Admin interface for the Issue model.
+    """
+    list_display = ('title', 'pk',
+                    'project', 'contributor',
+                    'priority', 'type_problem')
+    search_fields = ['title']
+    list_filter = ('priority',)
+    ordering = ['-time_created']
+    list_per_page = 10
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Contributor, ContributorAdmin)
 admin.site.register(Project, ProjectAdmin)
+admin.site.register(Issue, IssueAdmin)

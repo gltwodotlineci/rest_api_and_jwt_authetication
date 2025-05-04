@@ -114,7 +114,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         proj = serializer.save()
 
         # Add the user as a contributor to the project
@@ -166,16 +165,70 @@ class ContributorViewSet(viewsets.ModelViewSet):
 
 
 class IssueViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for the Issue model.
+    check authentication for the user.
+    add new issue to the project if the user is the author.
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return super().get_queryset()
-        # Filter the queryset to only include issues that
-        # the user is a contributor of
+
+        if not self.request.user.is_staff:
+            user = self.request.user
+            # Filter the queryset to only include issues that
+            # the user is a contributor or author
+            return self.queryset.filter(
+                Q(contributor__user=user) |
+                Q(project__project_contributors__user=user))
+        # If the user is staff, return all issues
+        return super().get_queryset()
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new issue.
+        """
+        serializer = self.get_serializer(data=request.data)
+
+        if not self.request.user.is_staff:
+            data = serializer.validated_data
+
+            proj = data.get('project')
+            usr_contrib = Contributor.objects.filter(
+                Q(user__in=proj.contributors.all()) & Q(role='A'))
+            if request.user != usr_contrib.last().user:
+                msg0 = "You're not authorized to add"
+                msg1 = " contributors to this project."
+                message = f"{msg0} {msg1}"
+                return Response({'error': message},
+                                status=status.HTTP_403_FORBIDDEN)
+
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update an existing issue.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data,
+                                         partial=True)
+        if not self.request.user.is_staff:
+
+            if instance.contributor.user != self.request.user:
+                msg0 = "You're not authorized to update"
+                msg1 = " this issue."
+                message = f"{msg0} {msg1}"
+                return Response({'error': message},
+                                status=status.HTTP_403_FORBIDDEN)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
