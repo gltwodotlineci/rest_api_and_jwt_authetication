@@ -123,9 +123,9 @@ class Comment(models.Model):
     uuid = models.UUIDField(primary_key=True,
                             unique=True, default=uuid4, editable=False)
     author = models.ForeignKey(settings.AUTH_USER_MODEL,
-                            on_delete=models.CASCADE,
-                            related_name='comment_author',
-                            default=None)
+                               on_delete=models.CASCADE,
+                               related_name='comment_author',
+                               default=None)
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE,
                               related_name='comment')
     description = models.CharField(max_length=190)

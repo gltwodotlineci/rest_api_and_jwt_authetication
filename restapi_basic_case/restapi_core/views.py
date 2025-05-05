@@ -175,8 +175,9 @@ class IssueViewSet(viewsets.ModelViewSet):
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'post', 'delete',
-                         'head', 'options', 'update']
+    http_method_names = ['get', 'post', 'put',
+                         'patch', 'delete', 'head',
+                         'options']
 
     def get_queryset(self):
 
@@ -233,7 +234,7 @@ class IssueViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def delete(self, request, *args, **kwargs):
+    def destroy(self, request, *args, **kwargs):
         """
         destroy an existing issue.
         """
@@ -264,7 +265,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'put',
+                         'patch', 'delete', 'head',
+                         'options']
 
     def get_queryset(self):
         if not self.request.user.is_staff:
@@ -277,3 +280,64 @@ class CommentViewSet(viewsets.ModelViewSet):
 
             return comments
         return super().get_queryset()
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new comment.
+        """
+        serializer = self.get_serializer(data=request.data)
+        user = self.request.user
+        if not serializer.is_valid(raise_exception=True):
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not user.is_staff:
+            data = serializer.validated_data
+            if user != data.get('author'):
+                msg = "You're not authorized to add a comment"
+                return Response({'error': msg},
+                                status=status.HTTP_403_FORBIDDEN)
+                issue = data.get('issue')
+                if user != issue.contributor.user:
+                    msg = "You're not authorized to add a comment"
+                    return Response({'error': msg},
+                                    status=status.HTTP_403_FORBIDDEN)
+
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        update an existing comment.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data,
+                                         partial=True)
+
+        if not self.request.user.is_staff:
+
+            if instance.author != self.request.user:
+                msg = "You're not authorized to update this comment."
+                return Response({'error': msg},
+                                status=status.HTTP_403_FORBIDDEN)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        destroy an existing comment.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data,
+                                         partial=True)
+
+        if not self.request.user.is_staff:
+
+            if instance.author != self.request.user:
+                msg = "You're not authorized to delete this comment."
+                return Response({'error': msg},
+                                status=status.HTTP_403_FORBIDDEN)
+        serializer.is_valid(raise_exception=True)
+        print("Im trying to delete it: ")
+        self.perform_destroy(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
