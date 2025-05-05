@@ -1,4 +1,4 @@
-from .models import CustomUser, Project, Contributor, Issue
+from .models import CustomUser, Project, Contributor, Issue, Comment
 from django.contrib import admin
 
 
@@ -51,7 +51,19 @@ class IssueAdmin(admin.ModelAdmin):
     list_per_page = 10
 
 
+class CommentAdmin(admin.ModelAdmin):
+    """
+    Admin interface for the Comment model.
+    """
+    list_display = ('issue', 'pk', 'description')
+    search_fields = ['issue']
+    list_filter = ('issue',)
+    ordering = ['-time_created']
+    list_per_page = 10
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Contributor, ContributorAdmin)
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(Issue, IssueAdmin)
+admin.site.register(Comment, CommentAdmin)

@@ -253,7 +253,27 @@ class IssueViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for the Comment model.
+    Check authentication for the user.
+    Add new comment to the issue if the user is the author.
+    Check permissions, authorization to create, update or delete.
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        if not self.request.user.is_staff:
+            user = self.request.user
+            # Filter the queryset to only include comments that
+            # the user is a contributor or author on comments isue
+            comments = self.queryset.filter(
+                issue__project__project_contributors__user=user
+            )
+
+            return comments
+        return super().get_queryset()

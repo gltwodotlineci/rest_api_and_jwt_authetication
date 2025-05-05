@@ -122,9 +122,12 @@ class Issue(models.Model):
 class Comment(models.Model):
     uuid = models.UUIDField(primary_key=True,
                             unique=True, default=uuid4, editable=False)
-    # Add user
+    author = models.ForeignKey(settings.AUTH_USER_MODEL,
+                            on_delete=models.CASCADE,
+                            related_name='comment_author',
+                            default=None)
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE,
                               related_name='comment')
     description = models.CharField(max_length=190)
-    issue_url = models.URLField()
+    issue_url = models.URLField(max_length=250, null=True, blank=True)
     time_created = models.DateTimeField(auto_now_add=True)
