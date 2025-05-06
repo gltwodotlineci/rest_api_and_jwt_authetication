@@ -10,7 +10,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     search_fields = ('username', 'email')
     list_filter = ('is_staff', 'is_active', 'age')
     ordering = ('username',)
-    list_per_page = 10
+    list_per_page = 15
 
 
 class CotnributorInline(admin.TabularInline):
@@ -30,7 +30,7 @@ class ProjectAdmin(admin.ModelAdmin):
     search_fields = ['name']
     list_filter = ('type', 'time_created')
     ordering = ['-time_created']
-    list_per_page = 10
+    list_per_page = 15
     inlines = [CotnributorInline]
 
     def has_add_permission(self, request):
@@ -45,7 +45,7 @@ class ContributorAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'project__name']
     list_filter = ('role',)
     ordering = ['-date_joined']
-    list_per_page = 10
+    list_per_page = 15
 
 
 class IssueAdmin(admin.ModelAdmin):
@@ -58,7 +58,7 @@ class IssueAdmin(admin.ModelAdmin):
     search_fields = ['title']
     list_filter = ('priority',)
     ordering = ['-time_created']
-    list_per_page = 10
+    list_per_page = 15
 
 
 class CommentAdmin(admin.ModelAdmin):
@@ -69,7 +69,7 @@ class CommentAdmin(admin.ModelAdmin):
     search_fields = ['issue']
     list_filter = ('issue',)
     ordering = ['-time_created']
-    list_per_page = 10
+    list_per_page = 15
 
 
 admin.site.register(CustomUser, CustomUserAdmin)
