@@ -28,7 +28,9 @@ class ProjectSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Project
-        fields = ['name', 'description', 'time_created', 'type']
+        fields = ['name', 'description',
+                  'contributors', 'type',
+                  'time_created']
 
 
 class ContributorSerializer(serializers.ModelSerializer):

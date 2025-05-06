@@ -139,7 +139,10 @@ class ContributorViewSet(viewsets.ModelViewSet):
         if self.request.user.is_staff:
             return super().get_queryset()
         # Filter the queryset to only include contributors that
-        return self.queryset.filter(user=self.request.user)
+        # work on the same project as the user
+        user = self.request.user.contributed_projects.all()
+        contributors = Contributor.objects.filter(project__in=user)
+        return contributors
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -162,6 +165,29 @@ class ContributorViewSet(viewsets.ModelViewSet):
 
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        destroy an existing contributor.
+        """
+        instance = self.get_object()
+
+        if instance.user == self.request.user:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_200_OK)
+
+        if not self.request.user.is_staff:
+
+            author = Contributor.objects.filter(Q(project=instance.project)
+                                                & Q(role='A')).first()
+
+            if request.user != author.user:
+                msg = "You're not authorized to remove this contributor"
+                return Response({'error': msg},
+                                status=status.HTTP_403_FORBIDDEN)
+
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_200_OK)
 
 
 class IssueViewSet(viewsets.ModelViewSet):

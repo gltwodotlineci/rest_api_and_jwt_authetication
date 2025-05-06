@@ -13,6 +13,15 @@ class CustomUserAdmin(admin.ModelAdmin):
     list_per_page = 10
 
 
+class CotnributorInline(admin.TabularInline):
+    """
+    Inline admin interface for the Contributor model.
+    """
+    model = Contributor
+    extra = 1
+    fields = ('user', 'role')
+
+
 class ProjectAdmin(admin.ModelAdmin):
     """
     Admin interface for the Project model.
@@ -22,6 +31,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ('type', 'time_created')
     ordering = ['-time_created']
     list_per_page = 10
+    inlines = [CotnributorInline]
 
     def has_add_permission(self, request):
         return request.user.is_superuser
