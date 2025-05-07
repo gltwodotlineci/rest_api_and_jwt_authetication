@@ -206,6 +206,17 @@ class IssueViewSet(viewsets.ModelViewSet):
                          'patch', 'delete', 'head',
                          'options']
 
+    def get_queryset(self):
+        if not self.request.user.is_staff:
+            # Filter the queryset to only include issues that
+            # the user is a contributor or author on issues
+            issues = self.queryset.filter(
+                Q(project__project_contributors__user=self.request.user) |
+                Q(author=self.request.user)
+            )
+            return issues
+        return super().get_queryset()
+
     def create(self, request, *args, **kwargs):
         # Create a new issue.
         serializer = self.get_serializer(data=request.data)
@@ -216,42 +227,24 @@ class IssueViewSet(viewsets.ModelViewSet):
         data['author'] = request.user
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    """
 
     def update(self, request, *args, **kwargs):
-        # Update an existing issue.
+        if request.method == 'PATCH':
+            contributors = request.data.get('contributors', [])
+            # Check if the users are contributors of the project
+            issue = self.get_object()
 
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data,
-                                         partial=True)
-        if not self.request.user.is_staff:
+            existing_contrib = issue.project.contributors.all()
+            contribs_id = [str(usr.pk) for usr in existing_contrib]
 
-            if instance.contributor.user != self.request.user:
-                msg0 = "You're not authorized to update"
-                msg1 = " this issue."
-                message = f"{msg0} {msg1}"
-                return Response({'error': message},
-                                status=status.HTTP_403_FORBIDDEN)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def destroy(self, request, *args, **kwargs):
-        # destroy an existing issue.
-        instance = self.get_object()
-
-        serializer = self.get_serializer(instance, data=request.data,
-                                         partial=True)
-        if not self.request.user.is_staff:
-
-            if instance.contributor.user != self.request.user:
-                msg = "You're not authorized to delete this issue."
+            if not set(contributors).issubset(set(contribs_id)):
+                msg0 = "One or many contriburos you gave is not part"
+                msg1 = " of the project."
+                msg = f"{msg0} {msg1}"
                 return Response({'error': msg},
                                 status=status.HTTP_403_FORBIDDEN)
-        serializer.is_valid(raise_exception=True)
-        self.perform_destroy(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    """
+
+        return super().update(request, *args, **kwargs)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

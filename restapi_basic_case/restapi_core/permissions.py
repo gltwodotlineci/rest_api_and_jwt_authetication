@@ -19,10 +19,13 @@ class IsContributorOrAuthor(BasePermission):
         return True
 
     def has_object_permission(self, request, view, obj):
+
         if request.method in SAFE_METHODS:
-            return Contributor.objects.filter(
-                user=request.user,
-                project=obj.issue
-            ).exists()
-        # Allow other methods to proceed to object-level permission check
+            if not request.user.is_superuser:
+                return request.user in obj.project.contributors.all()
+            return True
+        if request.method == "DELETE":
+            if request.user == obj.author:
+                return True
+            return False
         return obj.author == request.user
