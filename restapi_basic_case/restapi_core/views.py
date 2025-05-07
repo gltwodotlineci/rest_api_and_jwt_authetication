@@ -9,6 +9,7 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
+from .permissions import IsContributorOrAuthor
 from django.db.models import Q
 
 
@@ -197,7 +198,7 @@ class IssueViewSet(viewsets.ModelViewSet):
     add new issue to the project if the user is the author.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsContributorOrAuthor]
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
@@ -205,46 +206,21 @@ class IssueViewSet(viewsets.ModelViewSet):
                          'patch', 'delete', 'head',
                          'options']
 
-    def get_queryset(self):
-
-        if not self.request.user.is_staff:
-            user = self.request.user
-            # Filter the queryset to only include issues that
-            # the user is a contributor or author
-            issues = self.queryset.filter(
-                project__project_contributors__user=user)
-            return issues
-        # If the user is staff, return all issues
-        return super().get_queryset()
-
     def create(self, request, *args, **kwargs):
-        """
-        Create a new issue.
-        """
+        # Create a new issue.
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=True):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
-
-        if not self.request.user.is_staff:
-            data = serializer.validated_data
-            proj = data.get('project')
-            usr_contrib = Contributor.objects.filter(
-                Q(user__in=proj.contributors.all()) & Q(role='A'))
-            if request.user != usr_contrib.last().user:
-                msg0 = "You're not authorized to add"
-                msg1 = " contributors to this project."
-                message = f"{msg0} {msg1}"
-                return Response({'error': message},
-                                status=status.HTTP_403_FORBIDDEN)
-
+        data = serializer.validated_data
+        data['author'] = request.user
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    """
 
     def update(self, request, *args, **kwargs):
-        """
-        Update an existing issue.
-        """
+        # Update an existing issue.
+
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data,
                                          partial=True)
@@ -261,9 +237,7 @@ class IssueViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        """
-        destroy an existing issue.
-        """
+        # destroy an existing issue.
         instance = self.get_object()
 
         serializer = self.get_serializer(instance, data=request.data,
@@ -277,6 +251,7 @@ class IssueViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_destroy(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    """
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -287,7 +262,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     Check permissions, authorization to create, update or delete.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsContributorOrAuthor]
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     lookup_field = 'uuid'
@@ -295,6 +270,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                          'patch', 'delete', 'head',
                          'options']
 
+    """
     def get_queryset(self):
         if not self.request.user.is_staff:
             user = self.request.user
@@ -308,9 +284,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
-        """
-        Create a new comment.
-        """
+        # Create a new comment.
         serializer = self.get_serializer(data=request.data)
         user = self.request.user
         if not serializer.is_valid(raise_exception=True):
@@ -332,9 +306,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        """
-        update an existing comment.
-        """
+        # update an existing comment.
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data,
                                          partial=True)
@@ -350,9 +322,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        """
-        destroy an existing comment.
-        """
+        # destroy an existing comment.
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data,
                                          partial=True)
@@ -367,3 +337,4 @@ class CommentViewSet(viewsets.ModelViewSet):
         print("Im trying to delete it: ")
         self.perform_destroy(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    """

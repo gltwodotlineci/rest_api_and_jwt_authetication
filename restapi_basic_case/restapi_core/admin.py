@@ -52,8 +52,8 @@ class IssueAdmin(admin.ModelAdmin):
     """
     Admin interface for the Issue model.
     """
-    list_display = ('title', 'pk',
-                    'project', 'contributor',
+    list_display = ('name', 'pk', 'author',
+                    'project', 'description',
                     'priority', 'type_problem')
     search_fields = ['title']
     list_filter = ('priority',)

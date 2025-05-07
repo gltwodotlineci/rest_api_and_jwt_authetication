@@ -79,14 +79,18 @@ class Issue(models.Model):
                             unique=True,
                             default=uuid4,
                             editable=False)
-    # No contributor as FK
-    contributor = models.ForeignKey(Contributor,
-                                    on_delete=models.CASCADE,
-                                    related_name='issue_contributor')
+
+    author = models.ForeignKey(settings.AUTH_USER_MODEL,
+                               on_delete=models.CASCADE,
+                               related_name='issue',
+                               default=None)
+    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL,
+                                          related_name='issues')
     project = models.ForeignKey(Project,
                                 on_delete=models.CASCADE,
                                 related_name='issue_project')
-    title = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    description = models.CharField(max_length=250, null=True, blank=True)
 
     LOW, MEDIUM, HIGH = 'L', 'M', 'H'
     PRIORITY_TASK = [
