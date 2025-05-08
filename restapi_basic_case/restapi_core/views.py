@@ -118,15 +118,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 project_contributors__user=self.request.user)
 
         return super().get_queryset()
-    """
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         proj = serializer.save()
 
         # Add the user as a contributor to the project
         Contributor.objects.create(user=request.user, project=proj, role="A")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    """
 
 
 class ContributorViewSet(viewsets.ModelViewSet):
