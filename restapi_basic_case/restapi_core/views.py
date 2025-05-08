@@ -9,7 +9,8 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
-from .permissions import IssueContributorOrAuthor, ProjectPermission
+from .permissions import IssueContributorOrAuthor, ProjectPermission, \
+    ContributorPermission
 from django.db.models import Q
 
 
@@ -120,6 +121,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
+        """
+        Create a new project.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         proj = serializer.save()
@@ -136,14 +140,19 @@ class ContributorViewSet(viewsets.ModelViewSet):
     add new contributor to the project.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ContributorPermission]
 
     queryset = Contributor.objects.all()
     serializer_class = ContributorSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'patch', 'head', 'options']
 
     def get_queryset(self):
+        """
+        Get the list of contributors.
+        If the user is not staff, filter the queryset to only include
+        contributors that work on the same project as the user.
+        """
         if self.request.user.is_staff:
             return super().get_queryset()
         # Filter the queryset to only include contributors that
@@ -152,6 +161,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
         contributors = Contributor.objects.filter(project__in=user)
         return contributors
 
+    """
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=True):
@@ -175,9 +185,9 @@ class ContributorViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
-        """
-        destroy an existing contributor.
-        """
+
+        # destroy an existing contributor.
+
         instance = self.get_object()
 
         if instance.user == self.request.user:
@@ -196,6 +206,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
 
         self.perform_destroy(instance)
         return Response(status=status.HTTP_200_OK)
+    """
 
 
 class IssueViewSet(viewsets.ModelViewSet):
