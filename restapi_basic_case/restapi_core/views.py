@@ -9,7 +9,7 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
-from .permissions import IsContributorOrAuthor
+from .permissions import IssueContributorOrAuthor, ProjectPermission
 from django.db.models import Q
 
 
@@ -98,21 +98,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
     check authentication for the user.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ProjectPermission]
     queryset = Project.objects.all()
 
     serializer_class = ProjectSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'patch', 'head', 'options']
 
     def get_queryset(self):
+        """
+        Get the list of projects.
+        If the user is not staff, filter the queryset to only include
+        projects that the user is a contributor of.
+        """
         if not self.request.user.is_staff:
             # Filter the queryset to only include projects that
             # the user is a contributor of
             return self.queryset.filter(
                 project_contributors__user=self.request.user)
-        return super().get_queryset()
 
+        return super().get_queryset()
+    """
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         proj = serializer.save()
@@ -120,6 +126,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Add the user as a contributor to the project
         Contributor.objects.create(user=request.user, project=proj, role="A")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    """
 
 
 class ContributorViewSet(viewsets.ModelViewSet):
@@ -198,7 +205,7 @@ class IssueViewSet(viewsets.ModelViewSet):
     add new issue to the project if the user is the author.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated, IsContributorOrAuthor]
+    permission_classes = [IsAuthenticated, IssueContributorOrAuthor]
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
@@ -255,7 +262,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     Check permissions, authorization to create, update or delete.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated, IsContributorOrAuthor]
+    permission_classes = [IsAuthenticated]
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     lookup_field = 'uuid'
