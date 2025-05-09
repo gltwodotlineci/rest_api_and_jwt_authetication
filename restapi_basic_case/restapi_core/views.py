@@ -162,28 +162,6 @@ class ContributorViewSet(viewsets.ModelViewSet):
         return contributors
 
     """
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid(raise_exception=True):
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        if not self.request.user.is_staff:
-            data = serializer.validated_data
-
-            proj = data.get('project')
-            usr_contrib = Contributor.objects.filter(
-                Q(user__in=proj.contributors.all()) & Q(role='A'))
-            if request.user != usr_contrib.last().user:
-                msg0 = "You're not authorized to add"
-                msg1 = " contributors to this project."
-                message = f"{msg0} {msg1}"
-                return Response({'error': message},
-                                status=status.HTTP_403_FORBIDDEN)
-
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
     def destroy(self, request, *args, **kwargs):
 
         # destroy an existing contributor.
@@ -231,7 +209,7 @@ class IssueViewSet(viewsets.ModelViewSet):
             issues = self.queryset.filter(
                 Q(project__project_contributors__user=self.request.user) |
                 Q(author=self.request.user)
-            )
+            ).distinct()
             return issues
         return super().get_queryset()
 
@@ -251,7 +229,6 @@ class IssueViewSet(viewsets.ModelViewSet):
             contributors = request.data.get('contributors', [])
             # Check if the users are contributors of the project
             issue = self.get_object()
-
             existing_contrib = issue.project.contributors.all()
             contribs_id = [str(usr.pk) for usr in existing_contrib]
 
