@@ -103,18 +103,18 @@ class CommentPermission(BasePermission):
                 return False
             data = serializer.validated_data
             issue = data.get('issue')
-            if request.user not in issue.contributors.all():
-                return False
-
+            return request.user in issue.project.contributors.all()
         return True
 
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             if not request.user.is_superuser:
-                return request.user in obj.issue.contributors.all()
+                return request.user in obj.issue.project.contributors.all()
+
             return True
+
         if request.method == "DELETE":
-            if request.user == obj.author:
-                return True
-            return False
-        return obj.author == request.user
+            if not request.user.is_superuser:
+                return request.user == obj.author
+
+            return True

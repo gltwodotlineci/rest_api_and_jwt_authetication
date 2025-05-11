@@ -10,7 +10,7 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
 from .permissions import IssueContributorOrAuthor, ProjectPermission, \
-    ContributorPermission
+    ContributorPermission, CommentPermission
 from django.db.models import Q
 
 
@@ -250,7 +250,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     Check permissions, authorization to create, update or delete.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CommentPermission]
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     lookup_field = 'uuid'
@@ -258,6 +258,27 @@ class CommentViewSet(viewsets.ModelViewSet):
                          'patch', 'delete', 'head',
                          'options']
 
+    def get_queryset(self):
+        if not self.request.user.is_staff:
+            # Filter the queryset to only include comments that
+            # the user is a contributor or author on comments issue
+            comments = self.queryset.filter(
+                issue__project__project_contributors__user=self.request.user
+            ).distinct()
+
+            return comments
+        return super().get_queryset()
+
+    def create(self, request, *args, **kwargs):
+        # Create a new comment.
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=True):
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        data['author'] = request.user
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     """
     def get_queryset(self):
         if not self.request.user.is_staff:
@@ -271,27 +292,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             return comments
         return super().get_queryset()
 
-    def create(self, request, *args, **kwargs):
-        # Create a new comment.
-        serializer = self.get_serializer(data=request.data)
-        user = self.request.user
-        if not serializer.is_valid(raise_exception=True):
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-        if not user.is_staff:
-            data = serializer.validated_data
-            if user != data.get('author'):
-                msg = "You're not authorized to add a comment"
-                return Response({'error': msg},
-                                status=status.HTTP_403_FORBIDDEN)
-                issue = data.get('issue')
-                if user != issue.contributor.user:
-                    msg = "You're not authorized to add a comment"
-                    return Response({'error': msg},
-                                    status=status.HTTP_403_FORBIDDEN)
-
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         # update an existing comment.
@@ -309,20 +309,4 @@ class CommentViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def destroy(self, request, *args, **kwargs):
-        # destroy an existing comment.
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data,
-                                         partial=True)
-
-        if not self.request.user.is_staff:
-
-            if instance.author != self.request.user:
-                msg = "You're not authorized to delete this comment."
-                return Response({'error': msg},
-                                status=status.HTTP_403_FORBIDDEN)
-        serializer.is_valid(raise_exception=True)
-        print("Im trying to delete it: ")
-        self.perform_destroy(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)
     """
