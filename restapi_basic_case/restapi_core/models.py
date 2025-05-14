@@ -84,6 +84,7 @@ class Issue(models.Model):
                                on_delete=models.CASCADE,
                                related_name='issue',
                                default=None)
+    # Erease contributors field
     contributors = models.ManyToManyField(settings.AUTH_USER_MODEL,
                                           related_name='issues')
     project = models.ForeignKey(Project,

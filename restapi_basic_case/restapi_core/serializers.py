@@ -59,6 +59,7 @@ class IssueUserSerializer(serializers.ModelSerializer):
         allow_null=True
     )
 
+
     class Meta:
         model = Issue
         fields = ['contributors',

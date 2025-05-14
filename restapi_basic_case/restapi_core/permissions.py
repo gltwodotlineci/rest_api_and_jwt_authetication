@@ -6,21 +6,15 @@ class ProjectPermission(BasePermission):
     """
     Custom permission class to check if the user is the owner of the project.
     """
-    def has_permission(self, request, view):
-        return True
-
     def has_object_permission(self, request, view, obj):
-        if request.method in SAFE_METHODS:
-            if not request.user.is_superuser:
-                return request.user in obj.contributors.all()
+        if request.user.is_superuser:
             return True
-
-        if request.method in ("DELETE", "PATCH"):
-            if request.user.is_superuser:
-                return True
-
+        if request.method in SAFE_METHODS:
             return obj.project_contributors.filter(
-                role="A", user=request.user).exists()
+                user=request.user).exists()
+
+        return obj.project_contributors.filter(
+            role="A", user=request.user).exists()
 
 
 class ContributorPermission(BasePermission):
@@ -52,7 +46,7 @@ class ContributorPermission(BasePermission):
 
             return True
 
-        if request.method in ("DELETE", "PATCH"):
+        if request.method == "DELETE":
             if not request.user.is_superuser:
                 return Contributor.objects.filter(
                     project=obj.project,

@@ -145,7 +145,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
     queryset = Contributor.objects.all()
     serializer_class = ContributorSerializer
     lookup_field = 'uuid'
-    http_method_names = ['get', 'post', 'delete', 'patch', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     def get_queryset(self):
         """
@@ -157,34 +157,9 @@ class ContributorViewSet(viewsets.ModelViewSet):
             return super().get_queryset()
         # Filter the queryset to only include contributors that
         # work on the same project as the user
-        user = self.request.user.contributed_projects.all()
-        contributors = Contributor.objects.filter(project__in=user)
-        return contributors
-
-    """
-    def destroy(self, request, *args, **kwargs):
-
-        # destroy an existing contributor.
-
-        instance = self.get_object()
-
-        if instance.user == self.request.user:
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_200_OK)
-
-        if not self.request.user.is_staff:
-
-            author = Contributor.objects.filter(Q(project=instance.project)
-                                                & Q(role='A')).first()
-
-            if request.user != author.user:
-                msg = "You're not authorized to remove this contributor"
-                return Response({'error': msg},
-                                status=status.HTTP_403_FORBIDDEN)
-
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_200_OK)
-    """
+        projects_user = self.request.user.contributed_projects.all()
+        contributors = Contributor.objects.filter(project__in=projects_user)
+        return contributors  
 
 
 class IssueViewSet(viewsets.ModelViewSet):
@@ -221,10 +196,12 @@ class IssueViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         data = serializer.validated_data
         data['author'] = request.user
+        # Overide the save of serializer
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
+        # after deleting contributors in issue the update must be removed
         if request.method == 'PATCH':
             contributors = request.data.get('contributors', [])
             # Check if the users are contributors of the project
@@ -279,34 +256,3 @@ class CommentViewSet(viewsets.ModelViewSet):
         data['author'] = request.user
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    """
-    def get_queryset(self):
-        if not self.request.user.is_staff:
-            user = self.request.user
-            # Filter the queryset to only include comments that
-            # the user is a contributor or author on comments isue
-            comments = self.queryset.filter(
-                issue__project__project_contributors__user=user
-            )
-
-            return comments
-        return super().get_queryset()
-
-
-    def update(self, request, *args, **kwargs):
-        # update an existing comment.
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data,
-                                         partial=True)
-
-        if not self.request.user.is_staff:
-
-            if instance.author != self.request.user:
-                msg = "You're not authorized to update this comment."
-                return Response({'error': msg},
-                                status=status.HTTP_403_FORBIDDEN)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    """
