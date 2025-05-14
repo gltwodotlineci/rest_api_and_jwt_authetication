@@ -159,7 +159,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
         # work on the same project as the user
         projects_user = self.request.user.contributed_projects.all()
         contributors = Contributor.objects.filter(project__in=projects_user)
-        return contributors  
+        return contributors
 
 
 class IssueViewSet(viewsets.ModelViewSet):
