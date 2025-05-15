@@ -65,7 +65,7 @@ class CommentAdmin(admin.ModelAdmin):
     """
     Admin interface for the Comment model.
     """
-    list_display = ('issue', 'pk', 'description')
+    list_display = ('pk', 'issue', 'description')
     search_fields = ['issue']
     list_filter = ('issue',)
     ordering = ['-time_created']

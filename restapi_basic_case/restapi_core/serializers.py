@@ -52,17 +52,10 @@ class ContributorSerializer(serializers.ModelSerializer):
 
 # Serializing Customuser
 class IssueUserSerializer(serializers.ModelSerializer):
-    contributors = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=CustomUser.objects.all(),
-        required=False,
-        allow_null=True
-    )
 
     class Meta:
         model = Issue
-        fields = ['contributors',
-                  'project',
+        fields = ['project',
                   'name',
                   'description',
                   'priority',

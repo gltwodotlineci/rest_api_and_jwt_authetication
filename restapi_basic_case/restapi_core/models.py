@@ -85,8 +85,6 @@ class Issue(models.Model):
                                related_name='issue',
                                default=None)
     # Erease contributors field
-    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL,
-                                          related_name='issues')
     project = models.ForeignKey(Project,
                                 on_delete=models.CASCADE,
                                 related_name='issue_project')
@@ -122,6 +120,10 @@ class Issue(models.Model):
                                        choices=STATUS_PROGRESS,
                                        default=TODO)
     time_created = models.DateTimeField(auto_now_add=True)
+    archiv_contribs = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Comment(models.Model):

@@ -11,7 +11,6 @@ from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
 from .permissions import IssueCommentAuthor, ProjectPermission, \
     ContributorPermission
-from django.db.models import Q
 
 
 def refacto_list_objects(model, serializer_model) -> dict:
@@ -182,10 +181,9 @@ class IssueViewSet(viewsets.ModelViewSet):
             # Filter the queryset to only include issues that
             # the user is a contributor or author on issues
             issues = self.queryset.filter(
-                Q(project__project_contributors__user=self.request.user) |
-                Q(author=self.request.user)
-            ).distinct()
+                project__project_contributors__user=self.request.user)
             return issues
+
         return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
@@ -199,24 +197,6 @@ class IssueViewSet(viewsets.ModelViewSet):
         # Overide the save of serializer
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def update(self, request, *args, **kwargs):
-        # after deleting contributors in issue the update must be removed
-        if request.method == 'PATCH':
-            contributors = request.data.get('contributors', [])
-            # Check if the users are contributors of the project
-            issue = self.get_object()
-            existing_contrib = issue.project.contributors.all()
-            contribs_id = [str(usr.pk) for usr in existing_contrib]
-
-            if not set(contributors).issubset(set(contribs_id)):
-                msg0 = "One or many contriburos you gave is not part"
-                msg1 = " of the project."
-                msg = f"{msg0} {msg1}"
-                return Response({'error': msg},
-                                status=status.HTTP_403_FORBIDDEN)
-
-        return super().update(request, *args, **kwargs)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -241,7 +221,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             # the user is a contributor or author on comments issue
             comments = self.queryset.filter(
                 issue__project__project_contributors__user=self.request.user
-            ).distinct()
+            )
 
             return comments
         return super().get_queryset()

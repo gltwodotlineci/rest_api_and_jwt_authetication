@@ -40,11 +40,10 @@ class ContributorPermission(BasePermission):
         return True
 
     def has_object_permission(self, request, view, obj):
-        if request.method in SAFE_METHODS:
-            if not request.user.is_superuser:
-                return request.user in obj.project.contributors.all()
-
+        if request.user.is_superuser:
             return True
+        if request.method in SAFE_METHODS:
+            return request.user in obj.project.contributors.all()
 
         if request.method == "DELETE":
             if not request.user.is_superuser:
@@ -76,42 +75,11 @@ class IssueCommentAuthor(BasePermission):
         return True
 
     def has_object_permission(self, request, view, obj):
+        if request.user.is_superuser:
+            return True
 
         if request.method in SAFE_METHODS:
-            if not request.user.is_superuser:
+            return request.user in obj.project.contributors.all()
 
-                return request.user in obj.project.contributors.all()
-            return True
         if request.method in ("PATCH", "DELETE"):
-            if request.user == obj.author:
-                return True
-            return False
-        return obj.author == request.user
-
-
-class CommentPermission(BasePermission):
-    """
-    Custom permission class to check if the user is the owner of the project.
-    """
-    def has_permission(self, request, view):
-        if request.method == "POST":
-            serializer = view.get_serializer(data=request.data)
-            if not serializer.is_valid():
-                return False
-            data = serializer.validated_data
-            issue = data.get('issue')
-            return request.user in issue.project.contributors.all()
-        return True
-
-    def has_object_permission(self, request, view, obj):
-        if request.method in SAFE_METHODS:
-            if not request.user.is_superuser:
-                return request.user in obj.issue.project.contributors.all()
-
-            return True
-
-        if request.method == "DELETE":
-            if not request.user.is_superuser:
-                return request.user == obj.author
-
-            return True
+            return obj.author == request.user
