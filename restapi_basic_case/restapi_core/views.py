@@ -9,8 +9,8 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
     ContributorSerializer, IssueUserSerializer, CommentSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
-from .permissions import IssueContributorOrAuthor, ProjectPermission, \
-    ContributorPermission, CommentPermission
+from .permissions import IssueCommentAuthor, ProjectPermission, \
+    ContributorPermission
 from django.db.models import Q
 
 
@@ -169,7 +169,7 @@ class IssueViewSet(viewsets.ModelViewSet):
     add new issue to the project if the user is the author.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated, IssueContributorOrAuthor]
+    permission_classes = [IsAuthenticated, IssueCommentAuthor]
     queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
@@ -227,7 +227,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     Check permissions, authorization to create, update or delete.
     """
     authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticated, CommentPermission]
+    permission_classes = [IsAuthenticated, IssueCommentAuthor]
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     lookup_field = 'uuid'

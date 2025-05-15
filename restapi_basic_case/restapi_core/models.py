@@ -136,3 +136,7 @@ class Comment(models.Model):
     description = models.CharField(max_length=190)
     issue_url = models.URLField(max_length=250, null=True, blank=True)
     time_created = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def project(self):
+        return self.issue.project

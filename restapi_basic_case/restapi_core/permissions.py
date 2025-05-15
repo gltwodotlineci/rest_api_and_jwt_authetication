@@ -56,7 +56,7 @@ class ContributorPermission(BasePermission):
             return True
 
 
-class IssueContributorOrAuthor(BasePermission):
+class IssueCommentAuthor(BasePermission):
     """
     Custom permission class to check if the user is the owner of the project.
     """
@@ -67,6 +67,9 @@ class IssueContributorOrAuthor(BasePermission):
                 return False
             data = serializer.validated_data
             project = data.get('project')
+            if project is None:
+                project = data.get("issue").project
+
             if request.user not in project.contributors.all():
                 return False
 
