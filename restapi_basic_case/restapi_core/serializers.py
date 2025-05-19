@@ -13,6 +13,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'age', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
+    def validate_age(self, value):
+        """
+        Check that the age must be inferior to 15
+        """
+        if value < 15:
+            message = "You must be at least 15 years old"
+            raise serializers.ValidationError(message)
+        return value
+
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         instance = self.Meta.model(**validated_data)

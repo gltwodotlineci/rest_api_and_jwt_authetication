@@ -2,6 +2,22 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import Contributor
 
 
+class UserPermission(BasePermission):
+    """
+    Custom permission class to check if the user is authenticated
+    And if he is admin, or if it is his profile
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_superuser:
+            return True
+        if request.method in SAFE_METHODS:
+            return obj.owner == request.user
+        if request.method == "DELETE":
+            if request.user.is_superuser:
+                return True
+            return False
+
+
 class ProjectPermission(BasePermission):
     """
     Custom permission class to check if the user is the owner of the project.

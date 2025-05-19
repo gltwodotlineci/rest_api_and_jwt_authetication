@@ -1,8 +1,9 @@
 from datetime import datetime, timezone, timedelta
+from django.shortcuts import get_object_or_404
 import jwt
 # from django.shortcuts import render
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from .models import CustomUser, Project, Contributor, Issue, Comment
 from .serializers import CustomUserSerializer, ProjectSerializer, \
@@ -10,7 +11,7 @@ from .serializers import CustomUserSerializer, ProjectSerializer, \
 from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
 from .permissions import IssueCommentAuthor, ProjectPermission, \
-    ContributorPermission
+    ContributorPermission, UserPermission
 
 
 def refacto_list_objects(model, serializer_model) -> dict:
@@ -24,17 +25,30 @@ def refacto_list_objects(model, serializer_model) -> dict:
 
 
 class CustomUserViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [AllowAny()]
+        return [IsAuthenticated(), UserPermission()]
 
     def list(self, request):
-        # users = refacto_list_objects(CustomUser, CustomUserSerializer)
-        # return Response(users)
         queryset = CustomUser.objects.all()
         obj_serialized = CustomUserSerializer(queryset, many=True)
         users = obj_serialized.data
+
+        if not request.user.is_staff:
+            users = [us for us in users if
+                     us["username"] == request.user.username]
         return Response(users)
 
     def retrieve(self, request, pk=None):
-        pass
+        user = get_object_or_404(CustomUser, pk=pk)
+        serializer = CustomUserSerializer(user)
+        if request.user == user or request.user.is_staff:
+            return Response(serializer.data)
+        message = "You have not the right to acces to this user's data"
+        return Response({False: message})
 
     def create(self, request):
         serializer = CustomUserSerializer(data=request.data)
@@ -43,11 +57,14 @@ class CustomUserViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
-    def update(self, request, pk=None):
-        pass
-
     def destroy(self, request, pk=None):
-        pass
+        user = get_object_or_404(CustomUser, pk=pk)
+        name_user = user.username
+        if request.user.is_staff:
+            user.delete()
+            return Response(f"You have deletet {name_user} user")
+        message = "Only the admin can delete a user"
+        return Response({False: message})
 
 
 class LoginViewSet(viewsets.ViewSet):
