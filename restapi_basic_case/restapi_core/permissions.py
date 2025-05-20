@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
-from .models import Contributor
+from .models import Contributor, Project
 
 
 class UserPermission(BasePermission):
@@ -41,11 +41,12 @@ class ContributorPermission(BasePermission):
         if request.method == "POST":
             if request.user.is_superuser:
                 return True
-            serializer = view.get_serializer(data=request.data)
-            if not serializer.is_valid():
-                return False
-            data = serializer.validated_data
-            project = data.get('project')
+            # serializer = view.get_serializer(data=request.data)
+            # if not serializer.is_valid():
+            #     return False
+            # data = serializer.validated_data
+            proj_id = request.data.get('project')
+            project = Project.objects.get(uuid=proj_id)
             # contributors = project.contributors.all()
             # if request.user not in contributors:
             #     return False
@@ -59,16 +60,14 @@ class ContributorPermission(BasePermission):
         if request.user.is_superuser:
             return True
         if request.method in SAFE_METHODS:
-            return request.user in obj.project.contributors.all()
+            return obj.project.contributors.filter(
+                user=request.user).exists()
 
         if request.method == "DELETE":
-            if not request.user.is_superuser:
-                return Contributor.objects.filter(
-                    project=obj.project,
-                    user=request.user,
-                    role='A').exists()
-
-            return True
+            return Contributor.objects.filter(
+                project=obj.project,
+                user=request.user,
+                role='A').exists()
 
 
 class IssueCommentAuthor(BasePermission):
@@ -85,8 +84,8 @@ class IssueCommentAuthor(BasePermission):
             if project is None:
                 project = data.get("issue").project
 
-            if request.user not in project.contributors.all():
-                return False
+            return project.contributors.filter(
+                uuid=request.user.pk).exists()
 
         return True
 
@@ -97,5 +96,5 @@ class IssueCommentAuthor(BasePermission):
         if request.method in SAFE_METHODS:
             return request.user in obj.project.contributors.all()
 
-        if request.method in ("PATCH", "DELETE"):
+        if request.method in ("PATCH", "DELETE", "PUT"):
             return obj.author == request.user

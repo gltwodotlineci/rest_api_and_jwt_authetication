@@ -17,8 +17,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
         """
         Check that the age must be inferior to 15
         """
-        if value < 15:
-            message = "You must be at least 15 years old"
+        if value < 15 or value == "":
+            message = "The age field must be at least 15 and not empty"
             raise serializers.ValidationError(message)
         return value
 

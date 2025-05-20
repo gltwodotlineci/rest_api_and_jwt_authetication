@@ -14,16 +14,6 @@ from .permissions import IssueCommentAuthor, ProjectPermission, \
     ContributorPermission, UserPermission
 
 
-def refacto_list_objects(model, serializer_model) -> dict:
-    """
-    refacto the creation of the list for the viewset:
-    """
-    queryset = model.objects.all()
-    obj_serialized = serializer_model(queryset, many=True)
-    objects = obj_serialized.data
-    return objects
-
-
 class CustomUserViewSet(viewsets.ViewSet):
     authentication_classes = [CustomJWTAuthentication]
 
@@ -186,7 +176,6 @@ class IssueViewSet(viewsets.ModelViewSet):
     """
     authentication_classes = [CustomJWTAuthentication]
     permission_classes = [IsAuthenticated, IssueCommentAuthor]
-    queryset = Issue.objects.all()
     serializer_class = IssueUserSerializer
     lookup_field = 'uuid'
     http_method_names = ['get', 'post', 'put',
@@ -194,14 +183,16 @@ class IssueViewSet(viewsets.ModelViewSet):
                          'options']
 
     def get_queryset(self):
+        issues = Issue.objects.filter(
+            project__uuid=self.kwargs['project_uuid'])
         if not self.request.user.is_staff:
             # Filter the queryset to only include issues that
             # the user is a contributor or author on issues
-            issues = self.queryset.filter(
+            issues = issues.filter(
                 project__project_contributors__user=self.request.user)
             return issues
 
-        return super().get_queryset()
+        return issues
 
     def create(self, request, *args, **kwargs):
         # Create a new issue.
@@ -233,15 +224,16 @@ class CommentViewSet(viewsets.ModelViewSet):
                          'options']
 
     def get_queryset(self):
+        comments = Comment.objects.filter(
+            issue__uuid=self.kwargs['issue_uuid'])
         if not self.request.user.is_staff:
             # Filter the queryset to only include comments that
             # the user is a contributor or author on comments issue
-            comments = self.queryset.filter(
+            comments = comments.filter(
                 issue__project__project_contributors__user=self.request.user
             )
-
             return comments
-        return super().get_queryset()
+        return comments
 
     def create(self, request, *args, **kwargs):
         # Create a new comment.
