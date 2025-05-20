@@ -46,9 +46,9 @@ class ContributorPermission(BasePermission):
                 return False
             data = serializer.validated_data
             project = data.get('project')
-            contributors = project.contributors.all()
-            if request.user not in contributors:
-                return False
+            # contributors = project.contributors.all()
+            # if request.user not in contributors:
+            #     return False
 
             return project.project_contributors.all().filter(
                 user=request.user, role="A").exists()
