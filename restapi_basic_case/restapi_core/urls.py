@@ -11,21 +11,17 @@ router.register(r'users', CustomUserViewSet, basename='users')
 router.register(r'login', LoginViewSet, basename='login')
 router.register(r'logout', LogoutViewSet, basename='logout')
 router.register(r'projects', ProjectViewSet, basename='projects')
-router.register(r'contributors', ContributorViewSet, basename='contributors')
 
 # Creating nested routers for Issue and comments
-project_router = NestedSimpleRouter(router, r'projects', lookup='project')
-project_router.register(r'issues', IssueViewSet, basename='issues')
-
-issue_router = NestedSimpleRouter(project_router, r'issues', lookup='issue')
+proj_router = NestedSimpleRouter(router, r'projects', lookup='project')
+proj_router.register(r'issues', IssueViewSet, basename='issues')
+cns = 'contributors'
+proj_router.register(r'contributors', ContributorViewSet, basename=cns)
+issue_router = NestedSimpleRouter(proj_router, r'issues', lookup='issue')
 issue_router.register(r'comments', CommentViewSet, basename='comments')
-
-# router.register(r'issues', IssueViewSet, basename='issues')
-# router.register(r'comments', CommentViewSet, basename='comments')
-
 
 urlpatterns = [
     path('api/', include(router.urls)),
-    path('api/', include(project_router.urls)),
+    path('api/', include(proj_router.urls)),
     path('api/', include(issue_router.urls)),
 ]

@@ -3,7 +3,6 @@ from restapi_core.models import CustomUser, Project, Contributor, \
 from rest_framework import serializers
 
 
-# Serializing Customuser
 class CustomUserSerializer(serializers.ModelSerializer):
     """
     Serializer for the CustomUser model.
@@ -54,12 +53,16 @@ class ContributorSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid role")
         return value
 
+    username = serializers.SerializerMethodField()
+
     class Meta:
         model = Contributor
-        fields = ['user', 'project', 'role', 'date_joined']
+        fields = ['user', 'username', 'project', 'role', 'date_joined']
+
+    def get_username(self, obj):
+        return obj.user.username
 
 
-# Serializing Customuser
 class IssueUserSerializer(serializers.ModelSerializer):
 
     class Meta:

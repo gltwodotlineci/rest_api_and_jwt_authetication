@@ -41,15 +41,9 @@ class ContributorPermission(BasePermission):
         if request.method == "POST":
             if request.user.is_superuser:
                 return True
-            # serializer = view.get_serializer(data=request.data)
-            # if not serializer.is_valid():
-            #     return False
-            # data = serializer.validated_data
+
             proj_id = request.data.get('project')
             project = Project.objects.get(uuid=proj_id)
-            # contributors = project.contributors.all()
-            # if request.user not in contributors:
-            #     return False
 
             return project.project_contributors.all().filter(
                 user=request.user, role="A").exists()

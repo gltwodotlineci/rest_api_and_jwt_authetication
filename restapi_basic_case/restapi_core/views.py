@@ -23,13 +23,14 @@ class CustomUserViewSet(viewsets.ViewSet):
         return [IsAuthenticated(), UserPermission()]
 
     def list(self, request):
-        queryset = CustomUser.objects.all()
-        obj_serialized = CustomUserSerializer(queryset, many=True)
-        users = obj_serialized.data
-
         if not request.user.is_staff:
-            users = [us for us in users if
-                     us["username"] == request.user.username]
+            user = CustomUser.objects.get(uuid=request.user.pk)
+            obj_serialized = CustomUserSerializer(user, many=False)
+        else:
+            queryset = CustomUser.objects.all()
+            obj_serialized = CustomUserSerializer(queryset, many=True)
+
+        users = obj_serialized.data
         return Response(users)
 
     def retrieve(self, request, pk=None):
@@ -156,15 +157,11 @@ class ContributorViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Get the list of contributors.
-        If the user is not staff, filter the queryset to only include
         contributors that work on the same project as the user.
         """
-        if self.request.user.is_staff:
-            return super().get_queryset()
-        # Filter the queryset to only include contributors that
-        # work on the same project as the user
-        projects_user = self.request.user.contributed_projects.all()
-        contributors = Contributor.objects.filter(project__in=projects_user)
+        contributors = Contributor.objects.filter(
+            project__uuid=self.kwargs['project_uuid'])
+
         return contributors
 
 
