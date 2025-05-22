@@ -5,13 +5,19 @@ from .models import Contributor, Project
 class UserPermission(BasePermission):
     """
     Custom permission class to check if the user is authenticated
-    And if he is admin, or if it is his profile
+    And check his profile, or all profiles if he's admin
     """
+    def has_permission(self, request, view):
+        if request.method == "POST":
+            if not request.user.is_superuser:
+                return False
+        return True
+    
     def has_object_permission(self, request, view, obj):
         if request.user.is_superuser:
             return True
         if request.method in SAFE_METHODS:
-            return obj.owner == request.user
+            return obj == request.user
         if request.method == "DELETE":
             if request.user.is_superuser:
                 return True
@@ -22,6 +28,13 @@ class ProjectPermission(BasePermission):
     """
     Custom permission class to check if the user is the owner of the project.
     """
+    def has_permission(self, request, view):
+        if request.method == "POST":
+            if request.user.is_superuser:
+                return True
+
+        return True
+
     def has_object_permission(self, request, view, obj):
         if request.user.is_superuser:
             return True

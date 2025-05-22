@@ -18,12 +18,12 @@ We can start with downloading the github repository first. Once we have our repo
 git clone git@github.com:gltwodotlineci/rest_api_and_jwt_authetication.git
 https://github.com/gltwodotlineci/rest_api_and_jwt_authetication.git
 # Or if we have the SSH key in the github account:
-gti clone https://github.com/gltwodotlineci/rest_api_and_jwt_authetication.git
+git clone https://github.com/gltwodotlineci/rest_api_and_jwt_authetication.git
 ```
 ```python
 # Now we can add the dependences:
 # First, let's enter to the root of the app.
-cd rest_api_and_jwt_authetication
+cd rest_api_and_jwt_authetication/restapi_basic_case/
 python -m pip install -r requirements.txt
 # Or
 python3 -m pip install -r requirements.txt
@@ -50,3 +50,8 @@ Now we can launch our application by using the next command.
 ```bash
 ./manage.py runserver
 ```
+
+The admin for test mod is admin@ad.fr and its password: 1234glen
+
+The users for the test mod are also:
+gl1, gl2, gl3 and gl4. All their passwrods are: testtest

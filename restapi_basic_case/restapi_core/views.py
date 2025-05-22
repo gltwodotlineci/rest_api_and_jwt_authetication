@@ -1,9 +1,8 @@
 from datetime import datetime, timezone, timedelta
-from django.shortcuts import get_object_or_404
 import jwt
 # from django.shortcuts import render
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import CustomUser, Project, Contributor, Issue, Comment
 from .serializers import CustomUserSerializer, ProjectSerializer, \
@@ -14,48 +13,20 @@ from .permissions import IssueCommentAuthor, ProjectPermission, \
     ContributorPermission, UserPermission
 
 
-class CustomUserViewSet(viewsets.ViewSet):
+class CustomUserViewSet(viewsets.ModelViewSet):
     authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, UserPermission]
+    queryset = CustomUser.objects.all()
 
-    def get_permissions(self):
-        if self.action == "create":
-            return [AllowAny()]
-        return [IsAuthenticated(), UserPermission()]
+    serializer_class = CustomUserSerializer
+    lookup_field = 'uuid'
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
-    def list(self, request):
-        if not request.user.is_staff:
-            user = CustomUser.objects.get(uuid=request.user.pk)
-            obj_serialized = CustomUserSerializer(user, many=False)
-        else:
-            queryset = CustomUser.objects.all()
-            obj_serialized = CustomUserSerializer(queryset, many=True)
-
-        users = obj_serialized.data
-        return Response(users)
-
-    def retrieve(self, request, pk=None):
-        user = get_object_or_404(CustomUser, pk=pk)
-        serializer = CustomUserSerializer(user)
-        if request.user == user or request.user.is_staff:
-            return Response(serializer.data)
-        message = "You have not the right to acces to this user's data"
-        return Response({False: message})
-
-    def create(self, request):
-        serializer = CustomUserSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
-
-    def destroy(self, request, pk=None):
-        user = get_object_or_404(CustomUser, pk=pk)
-        name_user = user.username
-        if request.user.is_staff:
-            user.delete()
-            return Response(f"You have deletet {name_user} user")
-        message = "Only the admin can delete a user"
-        return Response({False: message})
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return self.queryset
+        # For specific user
+        return self.queryset.filter(uuid=self.request.user.pk)
 
 
 class LoginViewSet(viewsets.ViewSet):
