@@ -3,6 +3,12 @@ import jwt
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from .models import CustomUser
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path='.env', override=True)
+
+secret = os.getenv('SECRET')
 
 
 class CustomJWTAuthentication(BaseAuthentication):
@@ -14,7 +20,7 @@ class CustomJWTAuthentication(BaseAuthentication):
 
         token = auth_header.split(' ')[1]
         try:
-            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+            payload = jwt.decode(token, secret, algorithms=['HS256'])
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed('Token has expired')
         except jwt.InvalidTokenError:

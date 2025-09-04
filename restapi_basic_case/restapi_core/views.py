@@ -11,6 +11,12 @@ from rest_framework.exceptions import AuthenticationFailed
 from .authentication import CustomJWTAuthentication
 from .permissions import IssueCommentAuthor, ProjectPermission, \
     ContributorPermission, UserPermission
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path='.env', override=True)
+
+secret = os.getenv('SECRET')
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
@@ -52,7 +58,7 @@ class LoginViewSet(viewsets.ViewSet):
             "exp": datetime.now(timezone.utc) + timedelta(minutes=50),
             "iat": datetime.now(timezone.utc)
         }
-        token = jwt.encode(payload, 'secret', algorithm='HS256')
+        token = jwt.encode(payload, secret, algorithm='HS256')
 
         return Response({'jwt_token': token}, status=status.HTTP_200_OK)
 
